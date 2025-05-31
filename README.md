@@ -1,6 +1,3 @@
-# Arrival-Process-Estimation-with-Bernstein-Exponential
-Runtime estimation of arrival processes using Bernstein exponential distributions and sliding-window histograms.
-
 # Arrival Process Estimation with Bernstein Exponential
 
 This project focuses on estimating a time-varying arrival process using a Bernstein Exponential (BE) approximation. The objective is to characterize, at runtime, the inter-arrival time distribution of requests arriving at an edge component, such as a MEC (Multi-access Edge Computing) node.
