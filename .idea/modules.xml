@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ProjectModuleManager">
+    <modules>
+      <module fileurl="file://$PROJECT_DIR$/ArrivalProcessEstimation.iml" filepath="$PROJECT_DIR$/ArrivalProcessEstimation.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../sirio-master/sirio/sirio.iml" filepath="$PROJECT_DIR$/../sirio-master/sirio/sirio.iml" />
+    </modules>
+  </component>
+</project>
