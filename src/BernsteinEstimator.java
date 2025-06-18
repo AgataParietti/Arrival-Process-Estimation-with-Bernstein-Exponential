@@ -33,7 +33,7 @@ public class BernsteinEstimator {
         // Calcola f(-log(i/n)) per i = 0..n
         for (int i = 0; i <= degree; i++) {
             if (i == 0) {
-                fValues[i] = density[0]; // x = inf, assume primo valore
+                fValues[i] = density[0];
                 continue;
             }
             double x = -Math.log((double) i / degree);
@@ -41,7 +41,7 @@ public class BernsteinEstimator {
             if (binIndex >= 0 && binIndex < density.length) {
                 fValues[i] = density[binIndex];
             } else {
-                fValues[i] = 0.0; // fuori dal supporto osservato
+                fValues[i] = 0.0;
             }
         }
 
@@ -49,7 +49,7 @@ public class BernsteinEstimator {
     }
 
     public static double[] fromCDF(double[] cdf, double[] bins, int degree) {
-        double binWidth = bins[1] - bins[0]; // assumiamo bin equispaziati
+        double binWidth = bins[1] - bins[0];
         double[] fValues = new double[degree + 1];
 
         for (int i = 0; i <= degree; i++) {
@@ -62,45 +62,9 @@ public class BernsteinEstimator {
             if (binIndex >= 0 && binIndex < cdf.length) {
                 fValues[i] = cdf[binIndex];
             } else {
-                fValues[i] = 1.0; // La CDF tende a 1
+                fValues[i] = 1.0;
             }
         }
         return fValues;
-    }
-
-    /**
-     * Metodo completo che riceve una lista di tempi di arrivo, una dimensione della finestra e un grado,
-     * e restituisce una funzione BernsteinExponential approssimata dagli ultimi intertempi.
-     *
-     * @param arrivals lista di arrivi (time points)
-     * @param windowSize numero d'intertempi recenti da considerare
-     * @param degree grado dello stimatore
-     * @param numBins numero di bin da usare per costruire l'istogramma
-     * @return oggetto BernsteinExponential approssimante
-     */
-    public static BernsteinExponential buildEstimator(List<Double> arrivals, int windowSize, int degree, int numBins) {
-        if (arrivals.size() < windowSize + 1) {
-            throw new IllegalArgumentException("Non ci sono abbastanza campioni per la finestra richiesta.");
-        }
-
-        List<Double> interArrivals = new LinkedList<>();
-        int start = arrivals.size() - windowSize - 1;
-        for (int i = start + 1; i < arrivals.size(); i++) {
-            interArrivals.add(arrivals.get(i) - arrivals.get(i - 1));
-        }
-
-        double min = interArrivals.stream().min(Double::compare).orElse(0.0);
-        double max = interArrivals.stream().max(Double::compare).orElse(min + 1e-3);
-
-        Queue<double[]> queue = new LinkedList<>();
-        for (int i = 0; i < interArrivals.size(); i++) {
-            queue.add(new double[] {i, interArrivals.get(i)});
-        }
-
-        Histogram hist = new Histogram(numBins, min, max);
-        hist.createHistogram(queue);
-        double[] fValues = fromHistogram(hist, degree);
-
-        return new BernsteinExponential(degree, fValues);
     }
 }

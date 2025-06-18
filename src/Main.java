@@ -1,70 +1,82 @@
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.*;
-import java.util.stream.Collectors;
 
 public class Main {
-    public static void main(String[] args) {
-        // Lista di arrivi (come quelli che mi hai fornito)
-        Sampler sampler = new Sampler(100.0, 1.0);
-        List<Double> arrivals = sampler.generateArrivalTimes();
+    public static void main(String[] args) throws IOException {
+        double tMax = 2000;
+        double stepSize = 1;
+        int windowSize = 100;
+        int numBins = 20;
+        int numExperiments = 50;
 
-        // Calcolo degli intertempi
-        List<Double> interArrivals = new LinkedList<>();
-        for (int i = 1; i < arrivals.size(); i++) {
-            interArrivals.add(arrivals.get(i) - arrivals.get(i - 1));
-        }
+        double logn = Math.log(windowSize);
+        int degree = (int) Math.pow(windowSize/logn, 2);
+        System.out.println("Grado Bernstein: " + degree);
 
-        // Costruzione della coda di sample per Histogram
-        Queue<double[]> samples = new LinkedList<>();
-        for (int i = 0; i < interArrivals.size(); i++) {
-            samples.add(new double[]{i, interArrivals.get(i)});
-        }
+        // Inizializzazione dei dati comuni (x, lambda_t, cdf_empirical)
+        double[] xVals = null;
+        double[] lambdaVals = null;
+        double[] cdfEmpirical = null;
+        List<double[]> bernsteinMatrix = new ArrayList<>();
 
-        // Calcolo min e max per i bin
-        double min = interArrivals.stream().min(Double::compare).orElse(0.0);
-        double max = interArrivals.stream().max(Double::compare).orElse(min + 1e-3);
+        for (int exp = 1; exp <= numExperiments; exp++) {
+            Sampler sampler = new Sampler(tMax, stepSize);
+            List<Double> arrivals = sampler.generateArrivalTimes();
+            List<Double> windowed = Sampler.extractInterarrivalWindow(arrivals, windowSize);
 
-        // Istogramma
-        int numBins = 50;
-        Histogram hist = new Histogram(numBins, min, max);
-        hist.createHistogram(samples);
+            double min = windowed.stream().min(Double::compare).orElse(0.0);
+            double max = windowed.stream().max(Double::compare).orElse(min + 1e-3);
+            Histogram hist = new Histogram(numBins, min, max);
 
-        double[] bins = hist.getBins();
-        int[] counts = hist.getCounts();
-        double[] cdf = hist.computeCDF();
-        double binWidth = hist.getBinWidth();
-
-        // Salva CDF empirica
-        try (FileWriter writer = new FileWriter("histogram_output.csv")) {
-            writer.write("bin_center;count;empirical_cdf\n");
-            for (int i = 0; i < bins.length; i++) {
-                double center = bins[i] + binWidth / 2;
-                writer.write(String.format("%.6f;%d;%.6f\n", center, counts[i], cdf[i]));
+            Queue<double[]> queue = new LinkedList<>();
+            for (int i = 0; i < windowed.size(); i++) {
+                queue.add(new double[]{i, windowed.get(i)});
             }
-            System.out.println("Salvata la CDF empirica in 'histogram_output.csv'");
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+            hist.createHistogram(queue);
 
-        // Bernstein estimator per CDF
-        int window = bins.length;
-        int degree = (int) Math.pow(window / Math.log(window), 2);;
-        double[] fValues = BernsteinEstimator.fromCDF(cdf, bins, degree);
-        BernsteinExponential estimator = new BernsteinExponential(degree, fValues);
+            double[] bins = hist.getBins();
+            double[] cdf = hist.computeCDF();
+            double[] fValues = BernsteinEstimator.fromCDF(cdf, bins, degree);
+            BernsteinExponential estimator = new BernsteinExponential(degree, fValues);
 
-        // Valuta la stima della CDF su bin_center
-        try (FileWriter writer = new FileWriter("estimate_output.csv")) {
-            writer.write("bin_center;bernstein_estimate\n");
-            for (int i = 0; i < bins.length; i++) {
-                double center = bins[i] + binWidth / 2;
-                double x = center; // punto di valutazione
-                double approx = estimator.evaluate(x);
-                writer.write(String.format("%.6f;%.6f\n", center, approx));
+            if (exp == 1) {
+                xVals = bins;
+                lambdaVals = new double[numBins];
+                cdfEmpirical = cdf;
+                for (int i = 0; i < numBins; i++) {
+                    lambdaVals[i] = sampler.getLambda(xVals[i]);
+                }
             }
-            System.out.println("Stima Bernstein salvata in 'estimate_output.csv'");
-        } catch (IOException e) {
-            e.printStackTrace();
+
+            double[] bernsteinValues = new double[numBins];
+            for (int i = 0; i < numBins; i++) {
+                bernsteinValues[i] = estimator.evaluate(xVals[i]);
+            }
+            bernsteinMatrix.add(bernsteinValues);
+
+            System.out.println(">> Esperimento " + exp + " completato.");
         }
+
+        // Scrittura unica in CSV
+        try (FileWriter writer = new FileWriter("bernstein_approx_"+tMax+"_"+windowSize+".csv")) {
+            // Intestazione
+            writer.write("x,lambda_t,cdf_empirical");
+            for (int i = 1; i <= numExperiments; i++) {
+                writer.write(",bernstein_" + i);
+            }
+            writer.write("\n");
+
+            for (int i = 0; i < numBins; i++) {
+                writer.write(String.format(Locale.US, "%.4f,%.4f,%.4f",
+                        xVals[i], lambdaVals[i], cdfEmpirical[i]));
+                for (double[] bernsteinValues : bernsteinMatrix) {
+                    writer.write(String.format(Locale.US, ",%.4f", bernsteinValues[i]));
+                }
+                writer.write("\n");
+            }
+        }
+
+        System.out.println("File creato con successo.");
     }
 }

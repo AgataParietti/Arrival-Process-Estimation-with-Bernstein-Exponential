@@ -10,7 +10,7 @@ import java.util.Random;
 
 public class Sampler {
 
-    private final Random random = new Random(42);
+    private final Random random = new Random();
     private final double tMax;
     private final double stepSize;  // durata di ogni segmento flat o inclinato
 
@@ -74,15 +74,6 @@ public class Sampler {
     }
 
     /**
-     * Campiona un valore da una distribuzione esponenziale Exp(λ)
-     * @param rate parametro λ dell'esponenziale
-     * @return un campione positivo
-     */
-    private double sampleExponential(double rate) {
-        return -Math.log(1.0 - random.nextDouble()) / rate;
-    }
-
-    /**
      * Estrae gli ultimi intertempi da una lista di tempi di arrivo.
      * @param arrivals lista dei tempi di arrivo
      * @param windowSize numero di intertempi da considerare (W)
@@ -97,17 +88,14 @@ public class Sampler {
         return interarrivals.subList(fromIndex, interarrivals.size());
     }
 
-    /**
-     * Metodo di test: genera e stampa i tempi di arrivo simulati.
-     * @param args non utilizzato
-     */
-    public static void main(String[] args) {
-        Sampler sampler = new Sampler(100.0, 10.0);
-        List<Double> arrivals = sampler.generateArrivalTimes();
 
-        // Stampa i tempi di arrivo
-        for (double t : arrivals) {
-            System.out.printf("%.4f\n", t);
-        }
+    /**
+     * Campiona un valore da una distribuzione esponenziale Exp(λ)
+     * @param rate parametro λ dell'esponenziale
+     * @return un campione positivo
+     */
+    private double sampleExponential(double rate) {
+        return -Math.log(1.0 - random.nextDouble()) / rate;
     }
+
 }

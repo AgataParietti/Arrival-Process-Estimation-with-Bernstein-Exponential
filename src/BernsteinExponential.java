@@ -9,7 +9,7 @@ import java.util.List;
 public class BernsteinExponential {
 
     private final int degree;
-    private final double[] fValues; // f(-log(i / n)) per i = 0..n
+    private final double[] fValues;
 
     /**
      * Costruisce un'approssimazione BE_n f(x) a partire da una funzione discreta
@@ -54,9 +54,5 @@ public class BernsteinExponential {
             res /= i;
         }
         return res;
-    }
-
-    public double[] getfValues() {
-        return fValues;
     }
 }
